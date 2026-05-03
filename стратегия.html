@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Blackjack Pro Strategy</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0d1b0d;
+        color: #fff;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 8px;
+        overflow-x: hidden;
+      }
+      h1 {
+        font-size: 1.1rem;
+        color: #ffd700;
+        margin-bottom: 4px;
+        text-align: center;
+      }
+      .sub {
+        font-size: 0.7rem;
+        color: #888;
+        margin-bottom: 8px;
+        text-align: center;
+      }
+
+      .panel {
+        background: #1a2e1a;
+        border: 1px solid #2d5a2d;
+        border-radius: 10px;
+        padding: 10px;
+        width: 100%;
+        max-width: 420px;
+        margin-bottom: 8px;
+      }
+      .panel-title {
+        font-size: 0.85rem;
+        color: #90ee90;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      /* Dealer */
+      .dealer-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .dcard {
+        width: 52px;
+        height: 72px;
+        border-radius: 6px;
+        border: 2px solid #444;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        font-weight: bold;
+        cursor: pointer;
+        background: #2a2a2a;
+        color: #fff;
+        transition: all 0.15s;
+        user-select: none;
+      }
+      .dcard:hover {
+        border-color: #ffd700;
+      }
+      .dcard.selected {
+        background: #ffd700;
+        color: #000;
+        border-color: #ffd700;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+      }
+      .dcard-back {
+        background: repeating-linear-gradient(
+          45deg,
+          #1a1a1a,
+          #1a1a1a 4px,
+          #2a2a2a 4px,
+          #2a2a2a 8px
+        );
+        color: transparent;
+      }
+
+      /* Player */
+      .hand-block {
+        background: #142414;
+        border-radius: 8px;
+        padding: 8px;
+        margin-bottom: 6px;
+        border: 1px solid #2d5a2d;
+      }
+      .hand-label {
+        font-size: 0.75rem;
+        color: #aaa;
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .hand-label span {
+        color: #ffd700;
+      }
+      .pcards {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .pcard {
+        width: 48px;
+        height: 68px;
+        border-radius: 6px;
+        border: 2px solid #444;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        cursor: pointer;
+        background: #2a2a2a;
+        color: #fff;
+        transition: all 0.15s;
+        user-select: none;
+      }
+      .pcard:hover {
+        border-color: #90ee90;
+      }
+      .pcard.selected {
+        background: #90ee90;
+        color: #000;
+        border-color: #90ee90;
+      }
+
+      /* Card selector popup */
+      .selector {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 100;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .selector.active {
+        display: flex;
+      }
+      .sel-title {
+        font-size: 1.1rem;
+        color: #ffd700;
+        margin-bottom: 12px;
+      }
+      .sel-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        max-width: 340px;
+      }
+      .sel-card {
+        aspect-ratio: 2/3;
+        border-radius: 6px;
+        border: 2px solid #555;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        font-weight: bold;
+        cursor: pointer;
+        background: #1a1a1a;
+        color: #fff;
+        transition: all 0.1s;
+      }
+      .sel-card:hover {
+        border-color: #ffd700;
+        transform: scale(1.05);
+      }
+      .sel-card.red {
+        color: #ff4444;
+      }
+      .sel-card.black {
+        color: #fff;
+      }
+      .sel-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        border: none;
+        font-size: 0.9rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .btn-gold {
+        background: #ffd700;
+        color: #000;
+      }
+      .btn-gold:hover {
+        background: #ffec44;
+      }
+      .btn-red {
+        background: #cc3333;
+        color: #fff;
+      }
+      .btn-red:hover {
+        background: #dd4444;
+      }
+      .btn-green {
+        background: #2d5a2d;
+        color: #fff;
+        border: 1px solid #4a8a4a;
+      }
+      .btn-green:hover {
+        background: #3d7a3d;
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+      }
+
+      /* Result */
+      .result-box {
+        background: #1a1a1a;
+        border: 2px solid #ffd700;
+        border-radius: 12px;
+        padding: 14px;
+        text-align: center;
+        margin-top: 6px;
+      }
+      .action-main {
+        font-size: 1.6rem;
+        font-weight: 900;
+        color: #ffd700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 4px;
+      }
+      .action-sub {
+        font-size: 0.8rem;
+        color: #aaa;
+      }
+      .ev-info {
+        font-size: 0.7rem;
+        color: #666;
+        margin-top: 4px;
+      }
+
+      /* Quick buttons */
+      .quick-bar {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 6px;
+      }
+
+      .count-badge {
+        display: inline-block;
+        background: #333;
+        color: #ffd700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        margin-left: 4px;
+      }
+
+      .hint {
+        font-size: 0.65rem;
+        color: #666;
+        text-align: center;
+        margin-top: 4px;
+      }
+
+      /* Split hands */
+      .split-controls {
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin-bottom: 8px;
+      }
+
+      @media (max-width: 380px) {
+        .dcard {
+          width: 44px;
+          height: 62px;
+          font-size: 1.1rem;
+        }
+        .pcard {
+          width: 40px;
+          height: 58px;
+          font-size: 1rem;
+        }
+        .sel-grid {
+          grid-template-columns: repeat(5, 1fr);
+        }
+      }
+    </style>
+    <base target="_blank" />
+  </head>
+  <body>
+    <h1>♠ BLACKJACK PRO ♠</h1>
+    <div class="sub">S17 | DAS | 3:2 | 6-Card Charlie</div>
+
+    <!-- DEALER -->
+    <div class="panel">
+      <div class="panel-title">🃏 Карта дилера (открытая)</div>
+      <div class="dealer-row" id="dealerCards">
+        <div
+          class="dcard dcard-back"
+          id="dealerSlot"
+          onclick="openSelector('dealer', 0)"
+        >
+          ?
+        </div>
+      </div>
+      <div class="hint">Нажмите на карту, чтобы выбрать</div>
+    </div>
+
+    <!-- PLAYER -->
+    <div class="panel">
+      <div class="panel-title">🎴 Ваши карты</div>
+      <div id="playerHands"></div>
+      <div class="split-controls">
+        <button class="btn btn-green btn-sm" onclick="addHand()">+ Рука</button>
+        <button class="btn btn-red btn-sm" onclick="clearAll()">Сброс</button>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="panel" id="resultPanel" style="display: none">
+      <div class="panel-title">📊 Решение по стратегии</div>
+      <div id="results"></div>
+    </div>
+
+    <!-- CARD SELECTOR -->
+    <div class="selector" id="selector">
+      <div class="sel-title" id="selTitle">Выберите карту</div>
+      <div class="sel-grid" id="selGrid"></div>
+      <div class="sel-actions">
+        <button class="btn btn-red" onclick="closeSelector()">Отмена</button>
+      </div>
+    </div>
+
+    <script>
+      // ========== STATE ==========
+      let dealerCard = null;
+      let hands = [[]]; // array of hands, each hand is array of card values
+      let selTarget = null; // { type, handIndex, cardIndex }
+      const RANKS = [
+        "A",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "J",
+        "Q",
+        "K",
+      ];
+      const SUITS = ["♠", "♥", "♣", "♦"];
+
+      // ========== UI RENDER ==========
+      function render() {
+        // Dealer
+        const dSlot = document.getElementById("dealerSlot");
+        if (dealerCard) {
+          dSlot.textContent = dealerCard;
+          dSlot.className = "dcard selected";
+        } else {
+          dSlot.textContent = "?";
+          dSlot.className = "dcard dcard-back";
+        }
+
+        // Player hands
+        const container = document.getElementById("playerHands");
+        container.innerHTML = "";
+        hands.forEach((hand, hi) => {
+          const block = document.createElement("div");
+          block.className = "hand-block";
+          const sum = handValue(hand);
+          const isSoft = isSoftHand(hand);
+          const isPair = hand.length === 2 && hand[0] === hand[1];
+          const label = document.createElement("div");
+          label.className = "hand-label";
+          label.innerHTML = `Рука ${hi + 1}: <span>${sum}${isSoft ? " Soft" : ""}${isPair ? " (Пара)" : ""}${hand.length >= 6 ? " 🎉6-карт!" : ""}</span>`;
+          block.appendChild(label);
+
+          const pcards = document.createElement("div");
+          pcards.className = "pcards";
+          // existing cards
+          hand.forEach((c, ci) => {
+            const div = document.createElement("div");
+            div.className = "pcard selected";
+            div.textContent = c;
+            div.onclick = () => openSelector("player", hi, ci);
+            pcards.appendChild(div);
+          });
+          // add slot
+          const addDiv = document.createElement("div");
+          addDiv.className = "pcard";
+          addDiv.textContent = "+";
+          addDiv.style.borderStyle = "dashed";
+          addDiv.style.color = "#666";
+          addDiv.onclick = () => openSelector("player", hi, hand.length);
+          pcards.appendChild(addDiv);
+          block.appendChild(pcards);
+
+          // Remove hand button if multiple
+          if (hands.length > 1) {
+            const rm = document.createElement("div");
+            rm.style.textAlign = "center";
+            rm.style.marginTop = "4px";
+            rm.innerHTML = `<button class="btn btn-red btn-sm" onclick="removeHand(${hi})">Удалить руку</button>`;
+            block.appendChild(rm);
+          }
+
+          container.appendChild(block);
+        });
+
+        // Results
+        const resPanel = document.getElementById("resultPanel");
+        const resDiv = document.getElementById("results");
+        if (dealerCard && hands.some((h) => h.length > 0)) {
+          resPanel.style.display = "block";
+          resDiv.innerHTML = "";
+          hands.forEach((hand, hi) => {
+            if (hand.length === 0) return;
+            const decision = getDecision(hand, dealerCard, hi);
+            const box = document.createElement("div");
+            box.className = "result-box";
+            box.innerHTML = `
+        <div style="font-size:0.75rem;color:#888;margin-bottom:4px;">Рука ${hi + 1} — ${handValue(hand)}${isSoftHand(hand) ? " Soft" : ""}</div>
+        <div class="action-main">${decision.action}</div>
+        <div class="action-sub">${decision.reason}</div>
+      `;
+            resDiv.appendChild(box);
+          });
+        } else {
+          resPanel.style.display = "none";
+        }
+      }
+
+      // ========== CARD SELECTOR ==========
+      function openSelector(type, handIndex, cardIndex) {
+        selTarget = { type, handIndex, cardIndex };
+        document.getElementById("selTitle").textContent =
+          type === "dealer"
+            ? "Карта дилера"
+            : `Рука ${handIndex + 1}, карта ${cardIndex + 1}`;
+        const grid = document.getElementById("selGrid");
+        grid.innerHTML = "";
+        RANKS.forEach((r, i) => {
+          const suit = SUITS[i % 4];
+          const div = document.createElement("div");
+          div.className =
+            "sel-card " + (suit === "♥" || suit === "♦" ? "red" : "black");
+          div.textContent = r + suit;
+          div.onclick = () => selectCard(r);
+          grid.appendChild(div);
+        });
+        document.getElementById("selector").classList.add("active");
+      }
+      function closeSelector() {
+        document.getElementById("selector").classList.remove("active");
+        selTarget = null;
+      }
+      function selectCard(rank) {
+        if (!selTarget) return;
+        if (selTarget.type === "dealer") {
+          dealerCard = rank;
+        } else {
+          const hand = hands[selTarget.handIndex];
+          if (selTarget.cardIndex < hand.length) {
+            hand[selTarget.cardIndex] = rank;
+          } else {
+            hand.push(rank);
+          }
+        }
+        closeSelector();
+        render();
+      }
+
+      // ========== HAND MANAGEMENT ==========
+      function addHand() {
+        hands.push([]);
+        render();
+      }
+      function removeHand(idx) {
+        hands.splice(idx, 1);
+        if (hands.length === 0) hands = [[]];
+        render();
+      }
+      function clearAll() {
+        dealerCard = null;
+        hands = [[]];
+        render();
+      }
+
+      // ========== CARD LOGIC ==========
+      function cardValue(c) {
+        if (c === "A") return 11;
+        if (["J", "Q", "K", "10"].includes(c)) return 10;
+        return parseInt(c);
+      }
+      function handValue(hand) {
+        let sum = 0,
+          aces = 0;
+        hand.forEach((c) => {
+          sum += cardValue(c);
+          if (c === "A") aces++;
+        });
+        while (sum > 21 && aces > 0) {
+          sum -= 10;
+          aces--;
+        }
+        return sum;
+      }
+      function isSoftHand(hand) {
+        let sum = 0,
+          aces = 0;
+        hand.forEach((c) => {
+          sum += cardValue(c);
+          if (c === "A") aces++;
+        });
+        // soft if at least one ace still counts as 11
+        return aces > 0 && sum <= 21;
+      }
+      function isPair(hand) {
+        return hand.length === 2 && hand[0] === hand[1];
+      }
+      function isSixCard(hand) {
+        return hand.length >= 6 && handValue(hand) <= 21;
+      }
+
+      // ========== STRATEGY ENGINE ==========
+      // S17, DAS, 3:2, 6-Card Charlie, no surrender (assume)
+      // Composition-dependent basic strategy for multi-deck (6-8 decks)
+      function getDecision(hand, dealerUpcard, handIndex) {
+        const total = handValue(hand);
+        const soft = isSoftHand(hand);
+        const pair = isPair(hand);
+        const sixCard = isSixCard(hand);
+        const d = cardValue(dealerUpcard);
+
+        // 6-Card Charlie = auto win
+        if (sixCard) {
+          return {
+            action: "СТОП ✓",
+            reason: "6-карт Чарли — автопобеда! Не берите больше.",
+          };
+        }
+
+        // Blackjack
+        if (hand.length === 2 && total === 21) {
+          return { action: "СТОП ✓", reason: "Блэкджек! Ставка 3:2." };
+        }
+
+        // Bust
+        if (total > 21) {
+          return { action: "БАСТ ✗", reason: "Перебор. Рука проиграна." };
+        }
+
+        // --- PAIRS (with DAS) ---
+        if (pair) {
+          const card = hand[0];
+          const cv = cardValue(card);
+
+          // Always split
+          if (card === "A") {
+            return {
+              action: "СПЛИТ ⫚",
+              reason: "Тузы всегда сплит. Сильнейшая рука.",
+            };
+          }
+          if (card === "8") {
+            return {
+              action: "СПЛИТ ⫚",
+              reason: "8-8 vs " + dealerUpcard + ". Сплит всегда.",
+            };
+          }
+
+          // Never split
+          if (card === "5") {
+            return {
+              action: total === 10 ? "УДВОИТЬ ↕" : "ВЗЯТЬ +",
+              reason: "5-5 — лучше удвоить/взять, чем сплит.",
+            };
+          }
+          if (card === "10" || card === "J" || card === "Q" || card === "K") {
+            return {
+              action: "СТОП ✓",
+              reason: "20 — сильная рука. Никогда не сплит.",
+            };
+          }
+
+          // Conditional splits
+          if (card === "2") {
+            if (d >= 2 && d <= 7)
+              return {
+                action: "СПЛИТ ⫚",
+                reason: "2-2 vs " + dealerUpcard + " (2-7). Сплит с DAS.",
+              };
+            return {
+              action: "ВЗЯТЬ +",
+              reason: "2-2 vs " + dealerUpcard + " (8-A). Взять.",
+            };
+          }
+          if (card === "3") {
+            if (d >= 2 && d <= 7)
+              return {
+                action: "СПЛИТ ⫚",
+                reason: "3-3 vs " + dealerUpcard + " (2-7). Сплит с DAS.",
+              };
+            return {
+              action: "ВЗЯТЬ +",
+              reason: "3-3 vs " + dealerUpcard + " (8-A). Взять.",
+            };
+          }
+          if (card === "4") {
+            if (d === 5 || d === 6)
+              return {
+                action: "СПЛИТ ⫚",
+                reason:
+                  "4-4 vs " + dealerUpcard + ". Сплит только vs 5-6 с DAS.",
+              };
+            return {
+              action: "ВЗЯТЬ +",
+              reason: "4-4 vs " + dealerUpcard + ". Взять.",
+            };
+          }
+          if (card === "6") {
+            if (d >= 2 && d <= 6)
+              return {
+                action: "СПЛИТ ⫚",
+                reason: "6-6 vs " + dealerUpcard + " (2-6). Сплит с DAS.",
+              };
+            return {
+              action: "ВЗЯТЬ +",
+              reason: "6-6 vs " + dealerUpcard + " (7-A). Взять.",
+            };
+          }
+          if (card === "7") {
+            if (d >= 2 && d <= 7)
+              return {
+                action: "СПЛИТ ⫚",
+                reason: "7-7 vs " + dealerUpcard + " (2-7). Сплит.",
+              };
+            if (d === 8)
+              return { action: "ВЗЯТЬ +", reason: "7-7 vs 8. Взять." };
+            return {
+              action: "СТОП ✓",
+              reason: "7-7 vs " + dealerUpcard + " (9-A). Стоп.",
+            };
+          }
+          if (card === "9") {
+            if (d === 7 || d === 10 || d === 11)
+              return {
+                action: "СТОП ✓",
+                reason: "9-9 vs " + dealerUpcard + ". Стоп.",
+              };
+            return {
+              action: "СПЛИТ ⫚",
+              reason: "9-9 vs " + dealerUpcard + " (2-6,8,9). Сплит.",
+            };
+          }
+        }
+
+        // --- SOFT TOTALS ---
+        if (soft) {
+          // A,8 or A,9 — always stand
+          if (total >= 19) {
+            return {
+              action: "СТОП ✓",
+              reason: "Soft " + total + " — всегда стоп.",
+            };
+          }
+          if (total === 18) {
+            if (d === 9 || d === 10 || d === 11) {
+              // A,7 vs 9,10,A — composition dependent: if multiple cards, might hit
+              // Simplified: hit vs 9-A
+              return {
+                action: "ВЗЯТЬ +",
+                reason: "Soft 18 vs " + dealerUpcard + " (9-A). Взять.",
+              };
+            }
+            if (d === 2 || d === 7 || d === 8)
+              return {
+                action: "СТОП ✓",
+                reason: "Soft 18 vs " + dealerUpcard + ". Стоп.",
+              };
+            return {
+              action: "УДВОИТЬ ↕",
+              reason: "Soft 18 vs " + dealerUpcard + " (3-6). Удвоить.",
+            };
+          }
+          if (total === 17) {
+            if (d >= 3 && d <= 6)
+              return {
+                action: "УДВОИТЬ ↕",
+                reason: "Soft 17 vs " + dealerUpcard + " (3-6). Удвоить.",
+              };
+            return {
+              action: "ВЗЯТЬ +",
+              reason: "Soft 17 vs " + dealerUpcard + ". Взять.",
+            };
+          }
+          if (total === 16 || total === 15) {
+            if (d >= 4 && d <= 6)
+              return {
+                action: "УДВОИТЬ ↕",
+                reason:
+                  "Soft " + total + " vs " + dealerUpcard + " (4-6). Удвоить.",
+              };
+            return {
+              action: "ВЗЯТЬ +",
+              reason: "Soft " + total + " vs " + dealerUpcard + ". Взять.",
+            };
+          }
+          if (total === 14 || total === 13) {
+            if (d >= 5 && d <= 6)
+              return {
+                action: "УДВОИТЬ ↕",
+                reason:
+                  "Soft " + total + " vs " + dealerUpcard + " (5-6). Удвоить.",
+              };
+            return {
+              action: "ВЗЯТЬ +",
+              reason: "Soft " + total + " vs " + dealerUpcard + ". Взять.",
+            };
+          }
+        }
+
+        // --- HARD TOTALS ---
+        if (total >= 17) {
+          return {
+            action: "СТОП ✓",
+            reason: "Hard " + total + " — всегда стоп.",
+          };
+        }
+        if (total === 16) {
+          if (d >= 2 && d <= 6)
+            return {
+              action: "СТОП ✓",
+              reason: "16 vs " + dealerUpcard + " (2-6). Стоп.",
+            };
+          // No surrender assumed, so hit
+          return {
+            action: "ВЗЯТЬ +",
+            reason: "16 vs " + dealerUpcard + " (7-A). Взять (нет сдачи).",
+          };
+        }
+        if (total === 15) {
+          if (d >= 2 && d <= 6)
+            return {
+              action: "СТОП ✓",
+              reason: "15 vs " + dealerUpcard + " (2-6). Стоп.",
+            };
+          return {
+            action: "ВЗЯТЬ +",
+            reason: "15 vs " + dealerUpcard + " (7-A). Взять.",
+          };
+        }
+        if (total === 14) {
+          if (d >= 2 && d <= 6)
+            return {
+              action: "СТОП ✓",
+              reason: "14 vs " + dealerUpcard + " (2-6). Стоп.",
+            };
+          return {
+            action: "ВЗЯТЬ +",
+            reason: "14 vs " + dealerUpcard + " (7-A). Взять.",
+          };
+        }
+        if (total === 13) {
+          if (d >= 2 && d <= 6)
+            return {
+              action: "СТОП ✓",
+              reason: "13 vs " + dealerUpcard + " (2-6). Стоп.",
+            };
+          return {
+            action: "ВЗЯТЬ +",
+            reason: "13 vs " + dealerUpcard + " (7-A). Взять.",
+          };
+        }
+        if (total === 12) {
+          if (d >= 4 && d <= 6)
+            return {
+              action: "СТОП ✓",
+              reason: "12 vs " + dealerUpcard + " (4-6). Стоп.",
+            };
+          return {
+            action: "ВЗЯТЬ +",
+            reason: "12 vs " + dealerUpcard + ". Взять.",
+          };
+        }
+        if (total === 11) {
+          return { action: "УДВОИТЬ ↕", reason: "11 — всегда удвоить." };
+        }
+        if (total === 10) {
+          if (d === 10 || d === 11)
+            return {
+              action: "ВЗЯТЬ +",
+              reason: "10 vs " + dealerUpcard + " (10-A). Взять.",
+            };
+          return {
+            action: "УДВОИТЬ ↕",
+            reason: "10 vs " + dealerUpcard + " (2-9). Удвоить.",
+          };
+        }
+        if (total === 9) {
+          if (d >= 3 && d <= 6)
+            return {
+              action: "УДВОИТЬ ↕",
+              reason: "9 vs " + dealerUpcard + " (3-6). Удвоить.",
+            };
+          return {
+            action: "ВЗЯТЬ +",
+            reason: "9 vs " + dealerUpcard + ". Взять.",
+          };
+        }
+        if (total === 8) {
+          return { action: "ВЗЯТЬ +", reason: "8 — всегда взять." };
+        }
+        if (total <= 7) {
+          return { action: "ВЗЯТЬ +", reason: total + " — всегда взять." };
+        }
+
+        return { action: "?", reason: "Неизвестная ситуация" };
+      }
+
+      // ========== INIT ==========
+      render();
+    </script>
+  </body>
+</html>
